@@ -39,3 +39,10 @@ Can Fly To
 Header Data
 	This collapsible section contains some additional information about your map. You can click on the arrow to the left of ``Header Data`` to expand or collapse this section. This section is provided for convenience only, you don't need to worry about it right now! All this information can be edited later on the ``Header`` tab. See `Editing Map Headers <https://huderlem.github.io/porymap/manual/editing-map-header.html>`_.
 
+
+Importing Maps from Advance Map 1.95
+------------------------------------
+
+If you have existing layouts exported from Advance Map 1.95, you can bring them
+into your project by selecting ``File > Import Map from Advance Map 1.95...``.
+This reads the ``.map`` file and creates a new layout using the imported block data and tileset references.

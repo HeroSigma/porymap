@@ -2870,6 +2870,7 @@
     <addaction name="actionDuplicate_Current_Map_Layout"/>
     <addaction name="separator"/>
     <addaction name="actionImport_Map_from_Advance_Map_1_92"/>
+    <addaction name="actionImport_Map_from_Advance_Map_1_95"/>
     <addaction name="separator"/>
     <addaction name="action_Export_Map_Image"/>
     <addaction name="actionExport_Stitched_Map_Image"/>
@@ -3170,6 +3171,11 @@
   <action name="actionImport_Map_from_Advance_Map_1_92">
    <property name="text">
     <string>Import Map from Advance Map 1.92...</string>
+   </property>
+  </action>
+  <action name="actionImport_Map_from_Advance_Map_1_95">
+   <property name="text">
+    <string>Import Map from Advance Map 1.95...</string>
    </property>
   </action>
   <action name="actionProject_Settings">

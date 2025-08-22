@@ -7,6 +7,7 @@ and this project somewhat adheres to [Semantic Versioning](https://semver.org/sp
 ## [Unreleased]
 ### Added
 - Import metatiles from Advance Map 1.95 exports in the Tileset Editor.
+- Import maps from Advance Map 1.95 `.map` files.
 
 ## [6.2.0] - 2025-08-08
 ### Added

@@ -97,5 +97,4 @@ void TestAm95Importer::badPaletteRow() {
     QCOMPARE(res.warnings.size(), 1);
 }
 
-QTEST_MAIN(TestAm95Importer)
 #include "test_am95_importer.moc"

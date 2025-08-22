@@ -15,6 +15,7 @@
 #include "flowlayout.h"
 #include "shortcut.h"
 #include "advancemapparser.h"
+#include "importers/Am95MapParser.h"
 #include "prefab.h"
 #include "montabwidget.h"
 #include "imageexport.h"
@@ -2706,6 +2707,39 @@ void MainWindow::on_actionImport_Map_from_Advance_Map_1_92_triggered() {
         return;
     }
 
+    auto dialog = createNewLayoutDialog(mapLayout);
+    connect(dialog, &NewLayoutDialog::finished, [mapLayout] { mapLayout->deleteLater(); });
+    dialog->open();
+}
+
+void MainWindow::on_actionImport_Map_from_Advance_Map_1_95_triggered() {
+    QString filepath = FileDialog::getOpenFileName(this, "Import Map from Advance Map 1.95", "", "Advance Map 1.95 Map Files (*.map)");
+    if (filepath.isEmpty()) {
+        return;
+    }
+    bool error = false;
+    Am95ProjectContext ctx;
+    ctx.tilesetLabelsOrdered = editor->project->tilesetLabelsOrdered;
+    ctx.primaryTilesetLabels = editor->project->primaryTilesetLabels;
+    ctx.secondaryTilesetLabels = editor->project->secondaryTilesetLabels;
+    ctx.defaultPrimaryTileset = editor->project->getDefaultPrimaryTilesetLabel();
+    ctx.defaultSecondaryTileset = editor->project->getDefaultSecondaryTilesetLabel();
+    Am95MapParser::Am95MapImportResult res = Am95MapParser::parse(filepath, &error, ctx);
+    if (error) {
+        RecentErrorMessage::show(QStringLiteral("Failed to import map from Advance Map 1.95 .map file."), this);
+        return;
+    }
+    Layout *mapLayout = new Layout();
+    mapLayout->width = res.width;
+    mapLayout->height = res.height;
+    mapLayout->border_width = DEFAULT_BORDER_WIDTH;
+    mapLayout->border_height = DEFAULT_BORDER_HEIGHT;
+    Blockdata blocks;
+    for (uint16_t w : res.blockdata)
+        blocks.append(Block(w));
+    mapLayout->blockdata = blocks;
+    mapLayout->tileset_primary_label = res.primaryTilesetLabel;
+    mapLayout->tileset_secondary_label = res.secondaryTilesetLabel;
     auto dialog = createNewLayoutDialog(mapLayout);
     connect(dialog, &NewLayoutDialog::finished, [mapLayout] { mapLayout->deleteLater(); });
     dialog->open();

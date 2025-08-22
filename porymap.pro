@@ -45,6 +45,7 @@ DEFINES += PORYMAP_VERSION=\\\"$$VERSION\\\"
 
 SOURCES += src/core/advancemapparser.cpp \
     src/importers/Am95Importer.cpp \
+    src/importers/Am95MapParser.cpp \
     src/core/block.cpp \
     src/ui/resizelayoutpopup.cpp \
     src/core/bitpacker.cpp \
@@ -163,6 +164,7 @@ SOURCES += src/core/advancemapparser.cpp \
 
 HEADERS  += include/core/advancemapparser.h \
     src/importers/Am95Importer.h \
+    src/importers/Am95MapParser.h \
     include/core/block.h \
     include/core/bitpacker.h \
     include/core/blockdata.h \

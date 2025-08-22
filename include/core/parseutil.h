@@ -112,10 +112,17 @@ private:
     QHash<QString, int> globalDefineValues;
     QHash<QString, QString> globalDefineExpressions;
 
+    struct FunctionMacro {
+        QStringList params;
+        QString expression;
+    };
+    QHash<QString, FunctionMacro> knownFunctionMacros;
+
     bool updatesSplashScreen = false;
 
     int evaluateDefine(const QString &identifier, bool *ok = nullptr);
     int evaluateExpression(const QString &expression);
+    QString expandMacros(QString expression);
     QList<Token> tokenizeExpression(QString expression);
     QList<Token> generatePostfix(const QList<Token> &tokens);
     int evaluatePostfix(const QList<Token> &postfix);

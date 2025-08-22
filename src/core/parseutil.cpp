@@ -222,7 +222,7 @@ QList<Token> ParseUtil::tokenizeExpression(QString expression) {
     QList<Token> tokens;
 
     static const QStringList tokenTypes = {"hex", "decimal", "identifier", "operator", "leftparen", "rightparen"};
-    static const QRegularExpression re("^(?<hex>0[xX][0-9a-fA-F]+)|(?<decimal>\\d+)|(?<identifier>\\w+)|(?<operator>[+\\-*\\/<>|^%]+)|(?<leftparen>\\()|(?<rightparen>\\))");
+    static const QRegularExpression re("^(?<hex>0[xX][0-9a-fA-F]+[uUlL]*)|(?<decimal>\\d+[uUlL]*)|(?<identifier>\\w+)|(?<operator>[+\\-*\\/<>|^%]+)|(?<leftparen>\\()|(?<rightparen>\\))");
 
     expression = expression.trimmed();
     while (!expression.isEmpty()) {
@@ -232,8 +232,9 @@ QList<Token> ParseUtil::tokenizeExpression(QString expression) {
             break;
         }
         for (QString tokenType : tokenTypes) {
-            QString token = match.captured(tokenType);
-            if (!token.isEmpty()) {
+            QString captured = match.captured(tokenType);
+            if (!captured.isEmpty()) {
+                QString token = captured;
                 if (tokenType == "identifier") {
                     bool ok;
                     int tokenValue = evaluateDefine(token, &ok);
@@ -243,7 +244,7 @@ QList<Token> ParseUtil::tokenizeExpression(QString expression) {
 
                         // Replace token with evaluated expression
                         QString actualToken = QString::number(tokenValue);
-                        expression = expression.replace(0, token.length(), actualToken);
+                        expression = expression.replace(0, captured.length(), actualToken);
                         token = actualToken;
                         tokenType = "decimal";
                     } else {
@@ -260,9 +261,12 @@ QList<Token> ParseUtil::tokenizeExpression(QString expression) {
                         recordError(createErrorMessage(message, expression));
                     }
                 }
+                else if (tokenType == "decimal" || tokenType == "hex") {
+                    token.remove(QRegularExpression("(?i)[uUlL]+$"));
+                }
 
                 tokens.append(Token(token, tokenType));
-                expression = expression.remove(0, token.length()).trimmed();
+                expression = expression.remove(0, captured.length()).trimmed();
                 break;
             }
         }

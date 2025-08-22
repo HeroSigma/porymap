@@ -619,6 +619,8 @@ void ParseUtil::resetCDefines() {
     static const QHash<QString, int> defaultDefineValues = {
         {"FALSE", 0},
         {"TRUE", 1},
+        {"OFF", 0},
+        {"ON", 1},
         {"SCHAR_MIN", SCHAR_MIN},
         {"SCHAR_MAX", SCHAR_MAX},
         {"CHAR_MIN", CHAR_MIN},

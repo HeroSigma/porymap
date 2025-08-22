@@ -123,6 +123,7 @@ private:
     void redrawMetatileSelector();
     void importTilesetTiles(Tileset*);
     void importAdvanceMapMetatiles(Tileset*);
+    void importAdvanceMap95Metatiles(Tileset*);
     void exportTilesImage(Tileset*);
     void exportPorytilesLayerImages(Tileset*);
     void exportMetatilesImage();

@@ -118,6 +118,14 @@ Metatile data exported from Advance Map 1.92 in a ``.bvd``` file can be imported
 into porymap's tileset editor.
 This saves a lot of time since metatiles will not have to be defined from scratch.
 
+Import Metatiles from Advance Map 1.95...
+-----------------------------------------
+
+Allows importing metatile data exported from Advance Map 1.95.
+Only single-file exports are accepted. Palette rows, behaviors and flips are
+preserved. Unknown behaviors are set to ``None`` with a warning.
+
+
 
 Change Number of Metatiles
 --------------------------

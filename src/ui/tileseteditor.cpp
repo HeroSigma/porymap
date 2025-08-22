@@ -3,6 +3,7 @@
 #include "log.h"
 #include "imageproviders.h"
 #include "advancemapparser.h"
+#include "importers/Am95Importer.h"
 #include "paletteutil.h"
 #include "imageexport.h"
 #include "config.h"
@@ -12,6 +13,8 @@
 #include "eventfilters.h"
 #include "utility.h"
 #include "message.h"
+#include <QFileDialog>
+#include <QMessageBox>
 #include <QDialogButtonBox>
 #include <QCloseEvent>
 #include <QImageReader>
@@ -51,6 +54,8 @@ TilesetEditor::TilesetEditor(Project *project, Layout *layout, QWidget *parent) 
 
     connect(ui->actionImport_Primary_AdvanceMap_Metatiles,   &QAction::triggered, [this] { importAdvanceMapMetatiles(this->primaryTileset); });
     connect(ui->actionImport_Secondary_AdvanceMap_Metatiles, &QAction::triggered, [this] { importAdvanceMapMetatiles(this->secondaryTileset); });
+    connect(ui->actionImport_Primary_AdvanceMap95_Metatiles,   &QAction::triggered, [this] { importAdvanceMap95Metatiles(this->primaryTileset); });
+    connect(ui->actionImport_Secondary_AdvanceMap95_Metatiles, &QAction::triggered, [this] { importAdvanceMap95Metatiles(this->secondaryTileset); });
 
     connect(ui->actionExport_Primary_Tiles_Image,   &QAction::triggered, [this] { exportTilesImage(this->primaryTileset); });
     connect(ui->actionExport_Secondary_Tiles_Image, &QAction::triggered, [this] { exportTilesImage(this->secondaryTileset); });
@@ -1158,6 +1163,70 @@ void TilesetEditor::importAdvanceMapMetatiles(Tileset *tileset) {
     }
 
     tileset->setMetatiles(metatiles);
+    this->refresh();
+}
+
+void TilesetEditor::importAdvanceMap95Metatiles(Tileset *tileset) {
+    bool primary = !tileset->is_secondary;
+    QString descriptorCaps = primary ? "Primary" : "Secondary";
+
+    QFileDialog dialog(this, QString("Import %1 Tileset Metatiles from Advance Map 1.95").arg(descriptorCaps));
+    dialog.setFileMode(QFileDialog::ExistingFile);
+    dialog.setNameFilter("Advance Map 1.95 Export (*.bvd);;All Files (*)");
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    QString path = dialog.selectedFiles().first();
+
+    Am95ImportResult result;
+    try {
+        result = Am95Importer::parse(path);
+    } catch (const std::runtime_error &) {
+        RecentErrorMessage::show(QStringLiteral("Failed to import metatiles from Advance Map 1.95 export."), this);
+        return;
+    }
+
+    QList<Metatile*> metatiles;
+    for (int i = 0; i < result.metatiles.size(); ++i) {
+        Metatile *m = new Metatile(projectConfig.getNumTilesInMetatile());
+        for (int j = 0; j < 4; ++j) {
+            const Am95Subtile &st = result.metatiles.at(i).subtile[j];
+            Tile t(st.tileIndex, st.hFlip, st.vFlip, st.palRow);
+            m->tiles[j] = t;
+        }
+        if (i < result.attributes.size()) {
+            m->setBehavior(result.attributes.at(i).behavior);
+        }
+        metatiles.append(m);
+    }
+    tileset->setMetatiles(metatiles);
+
+    for (int i = 0; i < result.paletteRows.size(); ++i) {
+        QList<QRgb> row;
+        const QImage &img = result.paletteRows.at(i);
+        for (int x = 0; x < img.width() && x < 16; ++x)
+            row.append(img.pixel(x,0));
+        if (i < tileset->palettes.size())
+            tileset->palettes[i] = row;
+        else
+            tileset->palettes.append(row);
+        if (i < tileset->palettePreviews.size())
+            tileset->palettePreviews[i] = row;
+        else
+            tileset->palettePreviews.append(row);
+    }
+
+    QString summary = QString("Imported %1 metatiles, %2 palette rows. Warnings: %3. View details?")
+            .arg(result.metatiles.size())
+            .arg(result.paletteRows.size())
+            .arg(result.warnings.size());
+    if (!result.warnings.isEmpty()) {
+        if (QMessageBox::question(this, tr("Import Complete"), summary, QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+            QMessageBox::information(this, tr("Warnings"), result.warnings.join('\n'));
+        }
+    } else {
+        QMessageBox::information(this, tr("Import Complete"), summary);
+    }
+
     this->refresh();
 }
 

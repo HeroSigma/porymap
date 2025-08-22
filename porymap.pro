@@ -44,6 +44,7 @@ VERSION = 6.2.0
 DEFINES += PORYMAP_VERSION=\\\"$$VERSION\\\"
 
 SOURCES += src/core/advancemapparser.cpp \
+    src/importers/Am95Importer.cpp \
     src/core/block.cpp \
     src/ui/resizelayoutpopup.cpp \
     src/core/bitpacker.cpp \
@@ -161,6 +162,7 @@ SOURCES += src/core/advancemapparser.cpp \
     src/ui/wildmonsearch.cpp
 
 HEADERS  += include/core/advancemapparser.h \
+    src/importers/Am95Importer.h \
     include/core/block.h \
     include/core/bitpacker.h \
     include/core/blockdata.h \
@@ -330,5 +332,6 @@ INCLUDEPATH += include/core
 INCLUDEPATH += include/ui
 INCLUDEPATH += include/lib
 INCLUDEPATH += forms
+INCLUDEPATH += src
 
 include(src/vendor/QtGifImage/gifimage/qtgifimage.pri)

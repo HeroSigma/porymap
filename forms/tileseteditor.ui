@@ -870,6 +870,13 @@
      <addaction name="actionImport_Primary_AdvanceMap_Metatiles"/>
      <addaction name="actionImport_Secondary_AdvanceMap_Metatiles"/>
     </widget>
+    <widget class="QMenu" name="menuImport_AdvanceMap95_Metatiles">
+     <property name="title">
+      <string>Import Metatiles from Advance Map 1.95</string>
+     </property>
+     <addaction name="actionImport_Primary_AdvanceMap95_Metatiles"/>
+     <addaction name="actionImport_Secondary_AdvanceMap95_Metatiles"/>
+    </widget>
     <widget class="QMenu" name="menuImport_Tiles_Image">
      <property name="title">
       <string>Import Tiles Image</string>
@@ -888,6 +895,7 @@
     <addaction name="separator"/>
     <addaction name="menuImport_Tiles_Image"/>
     <addaction name="menuImport_AdvanceMap_Metatiles"/>
+    <addaction name="menuImport_AdvanceMap95_Metatiles"/>
     <addaction name="separator"/>
     <addaction name="menuExport_Tiles_Image"/>
     <addaction name="actionExport_Metatiles_Image"/>
@@ -1083,6 +1091,16 @@
    </property>
   </action>
   <action name="actionImport_Secondary_AdvanceMap_Metatiles">
+   <property name="text">
+    <string>Secondary...</string>
+   </property>
+  </action>
+  <action name="actionImport_Primary_AdvanceMap95_Metatiles">
+   <property name="text">
+    <string>Primary...</string>
+   </property>
+  </action>
+  <action name="actionImport_Secondary_AdvanceMap95_Metatiles">
    <property name="text">
     <string>Secondary...</string>
    </property>

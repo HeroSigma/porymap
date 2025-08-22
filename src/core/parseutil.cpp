@@ -513,7 +513,9 @@ ParseUtil::ParsedDefines ParseUtil::readCDefines(const QString &filename, const 
             // This would be a problem for e.g. NAME = MACRO(a, b), but we're currently unable to parse function-like macros anyway.
             // If this changes then the regex below needs to be updated.
             static const QRegularExpression re_enumElement("\\b(?<name>\\w+)\\b\\s*=?\\s*(?<expression>[^,]*)");
-            QRegularExpressionMatchIterator elementIter = re_enumElement.globalMatch(enumBody);
+            QString cleanedEnumBody = enumBody;
+            cleanedEnumBody.remove(QRegularExpression("^\\s*#.*$", QRegularExpression::MultilineOption));
+            QRegularExpressionMatchIterator elementIter = re_enumElement.globalMatch(cleanedEnumBody);
             while (elementIter.hasNext()) {
                 QRegularExpressionMatch elementMatch = elementIter.next();
                 const QString name = elementMatch.captured("name");

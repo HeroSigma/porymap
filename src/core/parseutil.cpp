@@ -177,16 +177,90 @@ int ParseUtil::evaluateDefine(const QString &identifier, bool *ok) {
 }
 
 int ParseUtil::evaluateExpression(const QString &expression) {
-    QList<Token> tokens = tokenizeExpression(expression);
+    QString expanded = expandMacros(expression);
+    QList<Token> tokens = tokenizeExpression(expanded);
     QList<Token> postfixExpression = generatePostfix(tokens);
     return evaluatePostfix(postfixExpression);
+}
+
+QString ParseUtil::expandMacros(QString expression) {
+    bool replaced = true;
+    while (replaced) {
+        replaced = false;
+        for (int i = 0; i < expression.length(); ++i) {
+            QChar c = expression[i];
+            if (!c.isLetter() && c != '_')
+                continue;
+            int start = i;
+            while (i < expression.length() && (expression[i].isLetterOrNumber() || expression[i] == '_'))
+                ++i;
+            QString name = expression.mid(start, i - start);
+            int pos = i;
+            while (pos < expression.length() && expression[pos].isSpace())
+                ++pos;
+            if (pos >= expression.length() || expression[pos] != '(')
+                continue;
+
+            int depth = 1;
+            int argStart = pos + 1;
+            int j = argStart;
+            while (j < expression.length() && depth > 0) {
+                if (expression[j] == '(')
+                    ++depth;
+                else if (expression[j] == ')')
+                    --depth;
+                ++j;
+            }
+            if (depth != 0)
+                continue;
+
+            QString argsString = expression.mid(argStart, j - argStart - 1);
+            QStringList args;
+            QString current;
+            int nested = 0;
+            for (QChar ch : argsString) {
+                if (ch == ',' && nested == 0) {
+                    args.append(current.trimmed());
+                    current.clear();
+                } else {
+                    if (ch == '(')
+                        ++nested;
+                    else if (ch == ')')
+                        --nested;
+                    current += ch;
+                }
+            }
+            if (!current.trimmed().isEmpty())
+                args.append(current.trimmed());
+
+            if (!knownFunctionMacros.contains(name))
+                continue;
+            const auto &macro = knownFunctionMacros.value(name);
+            if (args.size() != macro.params.size())
+                continue;
+
+            QString macroExpr = macro.expression;
+            for (int k = 0; k < macro.params.size(); ++k) {
+                QString param = macro.params[k].trimmed();
+                QString arg = args[k];
+                macroExpr.replace("##" + param, arg);
+                macroExpr.replace(param + "##", arg);
+                macroExpr.replace(param, arg);
+            }
+            macroExpr.replace("##", "");
+            expression.replace(start, j - start, "(" + macroExpr + ")");
+            replaced = true;
+            break;
+        }
+    }
+    return expression;
 }
 
 QList<Token> ParseUtil::tokenizeExpression(QString expression) {
     QList<Token> tokens;
 
     static const QStringList tokenTypes = {"hex", "decimal", "identifier", "operator", "leftparen", "rightparen"};
-    static const QRegularExpression re("^(?<hex>0[xX][0-9a-fA-F]+)|(?<decimal>\\d+)|(?<identifier>\\w+)|(?<operator>[+\\-*\\/<>|^%]+)|(?<leftparen>\\()|(?<rightparen>\\))");
+    static const QRegularExpression re("^(?<hex>0[xX][0-9a-fA-F]+[uUlL]*)|(?<decimal>\\d+[uUlL]*)|(?<identifier>\\w+)|(?<operator>[+\\-*\\/<>|^%]+)|(?<leftparen>\\()|(?<rightparen>\\))");
 
     expression = expression.trimmed();
     while (!expression.isEmpty()) {
@@ -196,8 +270,9 @@ QList<Token> ParseUtil::tokenizeExpression(QString expression) {
             break;
         }
         for (QString tokenType : tokenTypes) {
-            QString token = match.captured(tokenType);
-            if (!token.isEmpty()) {
+            QString captured = match.captured(tokenType);
+            if (!captured.isEmpty()) {
+                QString token = captured;
                 if (tokenType == "identifier") {
                     bool ok;
                     int tokenValue = evaluateDefine(token, &ok);
@@ -207,7 +282,7 @@ QList<Token> ParseUtil::tokenizeExpression(QString expression) {
 
                         // Replace token with evaluated expression
                         QString actualToken = QString::number(tokenValue);
-                        expression = expression.replace(0, token.length(), actualToken);
+                        expression = expression.replace(0, captured.length(), actualToken);
                         token = actualToken;
                         tokenType = "decimal";
                     } else {
@@ -224,9 +299,12 @@ QList<Token> ParseUtil::tokenizeExpression(QString expression) {
                         recordError(createErrorMessage(message, expression));
                     }
                 }
+                else if (tokenType == "decimal" || tokenType == "hex") {
+                    token.remove(QRegularExpression("(?i)[uUlL]+$"));
+                }
 
                 tokens.append(Token(token, tokenType));
-                expression = expression.remove(0, token.length()).trimmed();
+                expression = expression.remove(0, captured.length()).trimmed();
                 break;
             }
         }
@@ -457,7 +535,7 @@ ParseUtil::ParsedDefines ParseUtil::readCDefines(const QString &filename, const 
     };
 
     // Capture either the name and value of a #define, or everything between the braces of 'enum { }'
-    static const QRegularExpression re("#define\\s+(?<defineName>\\w+)[\\s\\n][^\\S\\n]*(?<defineValue>.+)?"
+    static const QRegularExpression re("#define\\s+(?<defineName>\\w+)(\\((?<macroParams>[^)]*)\\))?[\\s\\n][^\\S\\n]*(?<defineValue>.+)?"
                                        "|\\benum\\b[^{]*{(?<enumBody>[^}]*)}");
 
     QRegularExpressionMatchIterator iter = re.globalMatch(this->text);
@@ -473,7 +551,9 @@ ParseUtil::ParsedDefines ParseUtil::readCDefines(const QString &filename, const 
             // This would be a problem for e.g. NAME = MACRO(a, b), but we're currently unable to parse function-like macros anyway.
             // If this changes then the regex below needs to be updated.
             static const QRegularExpression re_enumElement("\\b(?<name>\\w+)\\b\\s*=?\\s*(?<expression>[^,]*)");
-            QRegularExpressionMatchIterator elementIter = re_enumElement.globalMatch(enumBody);
+            QString cleanedEnumBody = enumBody;
+            cleanedEnumBody.remove(QRegularExpression("^\\s*#.*$", QRegularExpression::MultilineOption));
+            QRegularExpressionMatchIterator elementIter = re_enumElement.globalMatch(cleanedEnumBody);
             while (elementIter.hasNext()) {
                 QRegularExpressionMatch elementMatch = elementIter.next();
                 const QString name = elementMatch.captured("name");
@@ -494,9 +574,17 @@ ParseUtil::ParsedDefines ParseUtil::readCDefines(const QString &filename, const 
         } else {
             // Encountered a #define
             const QString name = match.captured("defineName");
-            result.expressions.insert(name, match.captured("defineValue"));
-            if (matchesFilter(name))
-                result.filteredNames.append(name);
+            const QString params = match.captured("macroParams");
+            if (!params.isNull()) {
+                FunctionMacro macro;
+                macro.params = params.split(',', Qt::SkipEmptyParts);
+                macro.expression = match.captured("defineValue");
+                this->knownFunctionMacros.insert(name, macro);
+            } else {
+                result.expressions.insert(name, match.captured("defineValue"));
+                if (matchesFilter(name))
+                    result.filteredNames.append(name);
+            }
         }
     }
     // QHash::insert(const QHash<K, V> &other) was introduced in 5.15.
@@ -569,6 +657,8 @@ void ParseUtil::resetCDefines() {
     static const QHash<QString, int> defaultDefineValues = {
         {"FALSE", 0},
         {"TRUE", 1},
+        {"OFF", 0},
+        {"ON", 1},
         {"SCHAR_MIN", SCHAR_MIN},
         {"SCHAR_MAX", SCHAR_MAX},
         {"CHAR_MIN", CHAR_MIN},
@@ -585,6 +675,7 @@ void ParseUtil::resetCDefines() {
     this->globalDefineExpressions.clear();
     this->knownDefineValues.clear();
     this->knownDefineExpressions.clear();
+    this->knownFunctionMacros.clear();
 }
 
 QStringList ParseUtil::readCArray(const QString &filename, const QString &label) {
